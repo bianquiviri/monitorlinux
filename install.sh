@@ -68,8 +68,7 @@ docker compose exec app chown -R www-data:www-data storage bootstrap/cache
 
 # 7. Compilar Frontend (Vue 3 + Vite)
 echo -e "${GREEN}[6/7] Compilando assets del Frontend (Vue SPA)...${NC}"
-# Como no hay un contenedor Node, usamos la imagen oficial de Node de manera temporal
-docker run --rm -v $(pwd):/var/www -w /var/www node:20 sh -c "npm install && npm run build"
+docker compose run --rm node sh -c "npm install && npm run build"
 
 echo -e "\n${GREEN}[7/7] ¡Instalación Completada Exitosamente!${NC}"
 echo -e "======================================================"
