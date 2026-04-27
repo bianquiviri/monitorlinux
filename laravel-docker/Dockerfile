@@ -26,7 +26,8 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     libgbm1 \
     libasound2 \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath \
+    libzip-dev \
+    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Get latest Composer
