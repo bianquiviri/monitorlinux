@@ -4,7 +4,8 @@
     "description": "Laravel 11 Docker",
     "require": {
         "php": "^8.2",
-        "laravel/framework": "^11.0"
+        "laravel/framework": "^11.0",
+        "phpseclib/phpseclib": "~3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23"

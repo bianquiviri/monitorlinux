@@ -17,24 +17,30 @@ RUN apt-get update && apt-get install -y \
     libmariadb-dev \
     procps \
     docker.io \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath
+    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Create system user
 RUN groupadd -g ${GID} ${USER} || true && \
-    useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USER} || true
-
-RUN usermod -u 1000 www-data || true && groupmod -g 1000 www-data || true
+    useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USER} || true && \
+    groupadd -g 973 docker_host || true && \
+    usermod -aG docker,docker_host ${USER} || true
 
 WORKDIR /var/www
 
-COPY --chown=www-data:www-data . /var/www
+# Copy existing application directory contents
+COPY . /var/www
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Copy existing application directory permissions
+COPY --chown=${USER}:${USER} . /var/www
 
-RUN chmod -R 755 storage bootstrap/cache && \
-    chown -R www-data:www-data storage bootstrap/cache
+# Change current user to the one we created
+USER ${USER}
 
+# Copy supervisor config
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 9000

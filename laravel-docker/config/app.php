@@ -19,4 +19,6 @@ return [
     ],
     'providers' => ServiceProvider::defaultProviders()->merge([])->toArray(),
     'aliases' => Facade::defaultAliases()->merge([])->toArray(),
+    'monitor_user' => env('MONITOR_USER', 'admin'),
+    'monitor_password' => env('MONITOR_PASSWORD', 'adminpass'),
 ];
