@@ -63,8 +63,8 @@ sleep 5
 docker compose exec app php artisan migrate --force
 
 echo "Ajustando permisos de directorios..."
-docker compose exec app chmod -R 775 storage bootstrap/cache
-docker compose exec app chown -R www-data:www-data storage bootstrap/cache
+docker compose exec -u root app chmod -R 775 storage bootstrap/cache
+docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cache
 
 # 7. Compilar Frontend (Vue 3 + Vite)
 echo -e "${GREEN}[6/7] Compilando assets del Frontend (Vue SPA)...${NC}"
