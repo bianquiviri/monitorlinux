@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ServerMonitoringService;
+use Inertia\Inertia;
 
 class ServerInfoController extends Controller
 {
@@ -17,7 +18,7 @@ class ServerInfoController extends Controller
     public function listServers()
     {
         $servers = \App\Models\Server::all();
-        return view('server.index', compact('servers'));
+        return Inertia::render('Server/Index', compact('servers'));
     }
 
     public function index(Request $request, $id)
@@ -34,7 +35,7 @@ class ServerInfoController extends Controller
         $data['selected_server_id_encrypted'] = \Illuminate\Support\Facades\Crypt::encryptString($server->id);
         $data['selected_server_name'] = $server->name;
         
-        return view('server.info', $data);
+        return Inertia::render('Server/Info', $data);
     }
 
     public function processes(Request $request)

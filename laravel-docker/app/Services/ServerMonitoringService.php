@@ -21,11 +21,14 @@ class ServerMonitoringService
         }
 
         $isLocal = $server->is_local;
+        $memory = $this->getRemoteMemoryUsage($server);
 
         return [
             'php_version' => $isLocal ? PHP_VERSION : 'N/A (Remote)',
             'laravel_version' => $isLocal ? app()->version() : 'N/A (Remote)',
-            'memory_usage' => $this->getRemoteMemoryUsage($server),
+            'memory_used' => $memory['used'],
+            'memory_total' => $memory['total'],
+            'memory_used_percent' => $memory['percent'],
             'memory_limit' => $isLocal ? ini_get('memory_limit') : 'N/A',
             'disk_total' => $this->getRemoteDiskTotal($server),
             'disk_free' => $this->getRemoteDiskFree($server),
@@ -283,12 +286,22 @@ class ServerMonitoringService
         return $this->ssh->execute($server, 'uname -sr');
     }
 
-    private function getRemoteMemoryUsage(\App\Models\Server $server): string
+    private function getRemoteMemoryUsage(\App\Models\Server $server): array
     {
-        if ($server->is_local) return $this->formatBytes(memory_get_usage(true));
-        
-        $output = $this->ssh->execute($server, "free -b | grep Mem | awk '{print $3}'");
-        return $this->formatBytes((int)trim($output));
+        $output = $this->ssh->execute($server, "free -b | grep Mem | awk '{print $2, $3}'");
+        if (!$output) return ['used' => '0 B', 'total' => '0 B', 'percent' => 0];
+
+        $parts = explode(' ', trim($output));
+        $total = (float)($parts[0] ?? 1);
+        $used = (float)($parts[1] ?? 0);
+        $total = $total ?: 1; // Prevent division by zero
+        $percent = round(($used / $total) * 100);
+
+        return [
+            'used' => $this->formatBytes($used),
+            'total' => $this->formatBytes($total),
+            'percent' => $percent
+        ];
     }
 
     private function getRemoteDiskTotal(\App\Models\Server $server): string

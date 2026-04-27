@@ -4,11 +4,13 @@
     "description": "Laravel 11 Docker",
     "require": {
         "php": "^8.2",
+        "inertiajs/inertia-laravel": "^3.0",
         "laravel/framework": "^11.0",
         "phpseclib/phpseclib": "~3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel/pint": "^1.29",
         "mockery/mockery": "^1.6",
         "phpunit/phpunit": "^13.1"
     },
