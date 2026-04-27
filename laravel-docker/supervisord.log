@@ -255,3 +255,27 @@
 2026-04-27 23:30:05,723 INFO reaped unknown pid 303 (exit status 0)
 2026-04-27 23:30:05,723 INFO reaped unknown pid 312 (exit status 0)
 2026-04-27 23:30:05,723 INFO reaped unknown pid 254 (exit status 0)
+2026-04-27 23:34:04,073 WARN received SIGQUIT indicating exit request
+2026-04-27 23:34:04,073 INFO waiting for php-fpm to die
+2026-04-27 23:34:04,085 INFO stopped: php-fpm (exit status 0)
+2026-04-27 23:34:05,363 INFO supervisord started with pid 1
+2026-04-27 23:34:06,366 INFO spawned: 'php-fpm' with pid 25
+2026-04-27 23:34:07,410 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 108 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 110 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 113 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 114 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 142 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 135 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 143 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 183 (exit status 0)
+2026-04-27 23:34:23,130 INFO reaped unknown pid 192 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 226 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 228 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 231 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 232 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 256 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 262 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 301 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 310 (exit status 0)
+2026-04-27 23:34:24,556 INFO reaped unknown pid 254 (exit status 0)
