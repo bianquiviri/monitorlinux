@@ -60,7 +60,7 @@ docker compose exec app php artisan key:generate --force
 echo "Ejecutando migraciones de la base de datos..."
 # Esperar un poco a que MySQL inicie correctamente
 sleep 5
-docker compose exec app php artisan migrate --force
+docker compose exec app php artisan migrate --seed --force
 
 echo "Ajustando permisos de directorios..."
 docker compose exec -u root app chmod -R 775 storage bootstrap/cache
@@ -70,8 +70,28 @@ docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cac
 echo -e "${GREEN}[6/7] Compilando assets del Frontend (Vue SPA)...${NC}"
 docker compose run --rm node sh -c "npm install && npm run build"
 
-echo -e "\n${GREEN}[7/7] ¡Instalación Completada Exitosamente!${NC}"
+# 8. Configurar Laravel Dusk y ejecutar pruebas
+echo -e "${GREEN}[7/7] Configurando Laravel Dusk y verificando instalación...${NC}"
+docker compose exec app php artisan dusk:chrome-driver
+# Symlink para asegurar compatibilidad de arquitectura en Docker
+docker compose exec -u root app ln -sf /usr/bin/chromedriver /var/www/vendor/laravel/dusk/bin/chromedriver-linux
+
+echo "Reiniciando servicios para refrescar configuración..."
+docker compose restart web
+
+echo "Ejecutando pruebas E2E de validación (Dusk)..."
+# Asegurar permisos para que el usuario bianquiviri pueda correr los tests y escribir logs
+docker compose exec -u root app chmod -R 777 storage bootstrap/cache
+
+if docker compose exec app php artisan dusk; then
+    echo -e "${GREEN}✓ Todas las pruebas pasaron correctamente.${NC}"
+else
+    echo -e "${RED}✗ Algunas pruebas fallaron. Revisa los logs en tests/Browser/screenshots${NC}"
+fi
+
+echo -e "\n${GREEN}¡Instalación y Verificación Completada Exitosamente!${NC}"
 echo -e "======================================================"
 echo -e "MonitorLinux ahora se está ejecutando."
 echo -e "Puedes acceder en: ${BLUE}http://localhost:8080${NC}"
+echo -e "Credenciales por defecto: bianquiviri@gmail.com / !N1k00905"
 echo -e "======================================================"

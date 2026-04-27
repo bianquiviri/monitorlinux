@@ -14,13 +14,13 @@
             <div class="glass rounded-3xl p-8 shadow-2xl">
                 <form @submit.prevent="submit" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-semibold text-slate-300 mb-2">Correo Electrónico</label>
-                        <input type="email" v-model="form.email" required 
+                        <label for="email" class="block text-sm font-semibold text-slate-300 mb-2">Correo Electrónico</label>
+                        <input type="email" id="email" name="email" v-model="form.email" required 
                                class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-300 mb-2">Contraseña</label>
-                        <input type="password" v-model="form.password" required 
+                        <label for="password" class="block text-sm font-semibold text-slate-300 mb-2">Contraseña</label>
+                        <input type="password" id="password" name="password" v-model="form.password" required 
                                class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                     </div>
 
