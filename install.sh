@@ -50,7 +50,7 @@ docker compose up -d --build
 
 # 5. Instalar dependencias de PHP (Composer)
 echo -e "${GREEN}[4/7] Instalando dependencias de PHP (Composer)...${NC}"
-docker compose exec app composer install --no-interaction --optimize-autoloader
+docker compose exec app composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
 # 6. Configurar Laravel (Key, Permisos, Migraciones)
 echo -e "${GREEN}[5/7] Configurando Laravel...${NC}"
