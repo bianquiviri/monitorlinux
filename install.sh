@@ -11,33 +11,52 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}=======================================${NC}"
-echo -e "${BLUE}   Instalador de MonitorLinux (SPA)    ${NC}"
-echo -e "${BLUE}=======================================${NC}\n"
+# Función para imprimir con color (compatible con sh/dash)
+print_info() {
+    printf "${BLUE}%s${NC}\n" "$1"
+}
+
+print_success() {
+    printf "${GREEN}%s${NC}\n" "$1"
+}
+
+print_error() {
+    printf "${RED}%s${NC}\n" "$1"
+}
+
+print_info "======================================="
+print_info "   Instalador de MonitorLinux (SPA)    "
+print_info "======================================="
+printf "\n"
 
 # 1. Verificar dependencias
-echo -e "${GREEN}[1/7] Verificando dependencias...${NC}"
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Error: Docker no está instalado. Por favor, instala Docker primero.${NC}"
+print_success "[1/7] Verificando dependencias..."
+if ! command -v docker > /dev/null 2>&1; then
+    print_error "Error: Docker no está instalado. Por favor, instala Docker primero."
     exit 1
 fi
 
-if ! docker compose version &> /dev/null; then
-    echo -e "${RED}Error: Docker Compose V2 no está instalado.${NC}"
+if ! docker compose version > /dev/null 2>&1; then
+    print_error "Error: Docker Compose V2 no está instalado."
     exit 1
 fi
 
-# 2. Entrar al directorio del proyecto
-cd laravel-docker || { echo -e "${RED}Error: No se encuentra el directorio laravel-docker.${NC}"; exit 1; }
+# 2. Entrar al directorio del proyecto (si no estamos ya allí)
+if [ -d "laravel-docker" ]; then
+    cd laravel-docker
+elif [ ! -f "docker-compose.yml" ]; then
+    print_error "Error: No se encuentra el directorio laravel-docker ni el archivo docker-compose.yml."
+    exit 1
+fi
 
 # 3. Configurar archivo .env
-echo -e "${GREEN}[2/7] Configurando el archivo .env...${NC}"
+print_success "[2/7] Configurando el archivo .env..."
 if [ ! -f .env ]; then
     if [ -f .env.example ]; then
         cp .env.example .env
         echo "Archivo .env creado desde .env.example"
     else
-        echo -e "${RED}Error: No se encontró .env.example.${NC}"
+        print_error "Error: No se encontró .env.example."
         exit 1
     fi
 else
@@ -45,15 +64,15 @@ else
 fi
 
 # 4. Levantar contenedores de Docker
-echo -e "${GREEN}[3/7] Levantando contenedores (Docker Compose)...${NC}"
+print_success "[3/7] Levantando contenedores (Docker Compose)..."
 docker compose up -d --build
 
 # 5. Instalar dependencias de PHP (Composer)
-echo -e "${GREEN}[4/7] Instalando dependencias de PHP (Composer)...${NC}"
+print_success "[4/7] Instalando dependencias de PHP (Composer)..."
 docker compose exec app composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
 # 6. Configurar Laravel (Key, Permisos, Migraciones)
-echo -e "${GREEN}[5/7] Configurando Laravel...${NC}"
+print_success "[5/7] Configurando Laravel..."
 echo "Generando Application Key..."
 docker compose exec app php artisan key:generate --force
 
@@ -67,11 +86,11 @@ docker compose exec -u root app chmod -R 775 storage bootstrap/cache
 docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cache
 
 # 7. Compilar Frontend (Vue 3 + Vite)
-echo -e "${GREEN}[6/7] Compilando assets del Frontend (Vue SPA)...${NC}"
+print_success "[6/7] Compilando assets del Frontend (Vue SPA)...${NC}"
 docker compose run --rm node sh -c "npm install && npm run build"
 
 # 8. Configurar Laravel Dusk y ejecutar pruebas
-echo -e "${GREEN}[7/7] Configurando Laravel Dusk y verificando instalación...${NC}"
+print_success "[7/7] Configurando Laravel Dusk y verificando instalación..."
 docker compose exec app php artisan dusk:chrome-driver
 # Symlink para asegurar compatibilidad de arquitectura en Docker
 docker compose exec -u root app ln -sf /usr/bin/chromedriver /var/www/vendor/laravel/dusk/bin/chromedriver-linux
@@ -79,19 +98,20 @@ docker compose exec -u root app ln -sf /usr/bin/chromedriver /var/www/vendor/lar
 echo "Reiniciando servicios para refrescar configuración..."
 docker compose restart web
 
-echo "Ejecutando pruebas E2E de validación (Dusk)..."
+print_info "Ejecutando pruebas E2E de validación (Dusk)..."
 # Asegurar permisos para que el usuario bianquiviri pueda correr los tests y escribir logs
 docker compose exec -u root app chmod -R 777 storage bootstrap/cache
 
 if docker compose exec app php artisan dusk; then
-    echo -e "${GREEN}✓ Todas las pruebas pasaron correctamente.${NC}"
+    print_success "✓ Todas las pruebas pasaron correctamente."
 else
-    echo -e "${RED}✗ Algunas pruebas fallaron. Revisa los logs en tests/Browser/screenshots${NC}"
+    print_error "✗ Algunas pruebas fallaron. Revisa los logs en tests/Browser/screenshots"
 fi
 
-echo -e "\n${GREEN}¡Instalación y Verificación Completada Exitosamente!${NC}"
-echo -e "======================================================"
-echo -e "MonitorLinux ahora se está ejecutando."
-echo -e "Puedes acceder en: ${BLUE}http://localhost:8080${NC}"
-echo -e "Credenciales por defecto: bianquiviri@gmail.com / !N1k00905"
-echo -e "======================================================"
+printf "\n"
+print_success "¡Instalación y Verificación Completada Exitosamente!"
+print_info "======================================================"
+print_info "MonitorLinux ahora se está ejecutando."
+printf "${GREEN}Puedes acceder en: ${BLUE}http://localhost:8080${NC}\n"
+print_info "Credenciales por defecto: bianquiviri@gmail.com / !N1k00905"
+print_info "======================================================"
