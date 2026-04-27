@@ -10,7 +10,7 @@ class LoginController extends Controller
     public function show()
     {
         if (Auth::check()) {
-            return redirect()->route('server.info');
+            return redirect()->route('server.list');
         }
         return view('auth.login');
     }
@@ -24,7 +24,7 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->intended('/server');
+            return redirect()->route('server.list');
         }
 
         return back()->withErrors([

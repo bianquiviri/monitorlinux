@@ -44,13 +44,30 @@
     </script>
 </head>
 <body class="bg-dark-950 text-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8" x-data="serverMonitor()" x-init="startMonitoring()">
+    <div class="container mx-auto px-4 py-8 max-w-7xl" x-data="serverMonitor()" x-init="interval = setInterval(() => refreshProcesses(), 5000)">
+        
+        <!-- Connection Status Banner -->
+        <div x-show="connectionError" x-cloak class="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl flex items-center gap-3 text-red-400 font-bold animate-pulse">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>Error de conexión: No se pudo establecer contacto con <span x-text="selectedServerName"></span></span>
+        </div>
+
+        <div x-show="!connectionError" x-cloak x-transition class="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-2xl flex items-center gap-3 text-green-400 font-bold text-sm">
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+            <span>Conectado a <span x-text="selectedServerName"></span> vía SSH</span>
+        </div>
+
         <!-- Header -->
         <div class="flex justify-between items-start mb-12">
             <div>
-                <h1 class="text-5xl font-extrabold text-white tracking-tight">
-                    Monitor<span class="text-blue-500">Linux</span>
-                </h1>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('server.list') }}" class="p-2 hover:bg-white/5 rounded-xl text-dark-500 transition-all" title="Volver al Listado">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 17l-5-5m0 0l5-5m-5 5h12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <h1 class="text-5xl font-extrabold text-white tracking-tight">
+                        Monitor<span class="text-blue-500">Linux</span>
+                    </h1>
+                </div>
                 <p class="text-dark-400">Información en tiempo real del sistema</p>
                 <p class="text-sm text-dark-500 mt-2">{{ $current_time }}</p>
             </div>
@@ -596,6 +613,16 @@
 
     <script>
     function serverMonitor() {
+        return {
+            processes: @json($processes),
+            loadAvg: @json($load_avg),
+            uptime: '{{ $uptime }}',
+            dockerContainers: @json($docker_containers),
+            networkStats: @json($network_stats),
+            servicesStatus: @json($services_status),
+            recentLogs: @json($recent_logs),
+            dbStats: @json($db_stats),
+            loggedUsers: @json($logged_users),
             swapUsage: @json($swap_usage),
             ioWait: '{{ $io_wait }}',
             listeningPorts: @json($listening_ports),
@@ -609,8 +636,9 @@
             diskUsedPercent: {{ $disk_used_percent }},
             osName: '{{ $os_name }}',
             servers: @json($servers),
-            selectedServerId: {{ $selected_server_id }},
+            selectedServerId: '{{ $selected_server_id_encrypted }}',
             selectedServerName: '{{ $selected_server_name }}',
+            connectionError: false,
             openModal: false,
             openManageModal: false,
             isEditing: false,
@@ -618,7 +646,7 @@
             interval: null,
             
             selectServer(server) {
-                this.selectedServerId = server.id;
+                this.selectedServerId = server.encrypted_id;
                 this.selectedServerName = server.name;
                 this.refreshProcesses();
             },
@@ -627,6 +655,12 @@
                 try {
                     const response = await fetch(`{{ route('server.processes') }}?server_id=${this.selectedServerId}`);
                     const data = await response.json();
+                    
+                    if (!data || data.error || !data.os_name) {
+                        this.connectionError = true;
+                        return;
+                    }
+                    this.connectionError = false;
                     
                     this.processes = data.processes;
                     this.loadAvg = data.load_avg;

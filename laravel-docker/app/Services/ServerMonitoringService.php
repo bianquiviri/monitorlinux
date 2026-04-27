@@ -14,7 +14,7 @@ class ServerMonitoringService
         $this->ssh = $ssh;
     }
 
-    public function getServerStats(\App\Models\Server $server = null): array
+    public function getServerStats(?\App\Models\Server $server): array
     {
         if (!$server) {
             $server = \App\Models\Server::where('is_local', true)->first();
@@ -119,7 +119,9 @@ class ServerMonitoringService
         $allowedActions = ['start', 'stop', 'restart'];
         if (!in_array($action, $allowedActions)) return false;
 
-        $command = "docker $action $id 2>&1";
+        $safeAction = escapeshellarg($action);
+        $safeId = escapeshellarg($id);
+        $command = "docker {$safeAction} {$safeId} 2>&1";
         $this->ssh->execute($server, $command);
         return true;
     }

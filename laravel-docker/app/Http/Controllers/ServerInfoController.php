@@ -14,14 +14,24 @@ class ServerInfoController extends Controller
         $this->monitor = $monitor;
     }
 
-    public function index(Request $request)
+    public function listServers()
     {
-        $serverId = $request->query('server_id');
-        $server = $serverId ? \App\Models\Server::find($serverId) : \App\Models\Server::where('is_local', true)->first();
+        $servers = \App\Models\Server::all();
+        return view('server.index', compact('servers'));
+    }
+
+    public function index(Request $request, $id)
+    {
+        try {
+            $realId = \Illuminate\Support\Facades\Crypt::decryptString($id);
+            $server = \App\Models\Server::findOrFail($realId);
+        } catch (\Exception $e) {
+            return redirect()->route('server.list')->with('error', 'ID de servidor no válido');
+        }
         
         $data = $this->monitor->getServerStats($server);
         $data['servers'] = \App\Models\Server::all();
-        $data['selected_server_id'] = $server->id;
+        $data['selected_server_id_encrypted'] = \Illuminate\Support\Facades\Crypt::encryptString($server->id);
         $data['selected_server_name'] = $server->name;
         
         return view('server.info', $data);
@@ -29,8 +39,13 @@ class ServerInfoController extends Controller
 
     public function processes(Request $request)
     {
-        $serverId = $request->query('server_id');
-        $server = $serverId ? \App\Models\Server::find($serverId) : \App\Models\Server::where('is_local', true)->first();
+        $encryptedId = $request->query('server_id');
+        try {
+            $realId = $encryptedId ? \Illuminate\Support\Facades\Crypt::decryptString($encryptedId) : null;
+            $server = $realId ? \App\Models\Server::find($realId) : \App\Models\Server::where('is_local', true)->first();
+        } catch (\Exception $e) {
+            $server = \App\Models\Server::where('is_local', true)->first();
+        }
 
         $data = $this->monitor->getServerStats($server);
         $data['servers'] = \App\Models\Server::all();
@@ -40,7 +55,8 @@ class ServerInfoController extends Controller
 
     public function updateServer(Request $request, $id)
     {
-        $server = \App\Models\Server::findOrFail($id);
+        $realId = \Illuminate\Support\Facades\Crypt::decryptString($id);
+        $server = \App\Models\Server::findOrFail($realId);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'ip' => 'nullable|string|max:255',
@@ -59,9 +75,28 @@ class ServerInfoController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function testConnection(Request $request)
+    {
+        $validated = $request->validate([
+            'ip' => 'required|string',
+            'ssh_user' => 'required|string',
+            'ssh_password' => 'nullable|string',
+            'ssh_port' => 'required|integer',
+            'ssh_key' => 'nullable|string',
+        ]);
+
+        // Create a temporary model instance for testing
+        $server = new \App\Models\Server($validated);
+        
+        $success = $this->ssh->testConnection($server);
+
+        return response()->json(['success' => $success]);
+    }
+
     public function deleteServer($id)
     {
-        $server = \App\Models\Server::findOrFail($id);
+        $realId = \Illuminate\Support\Facades\Crypt::decryptString($id);
+        $server = \App\Models\Server::findOrFail($realId);
         if ($server->is_local) {
             return response()->json(['success' => false, 'message' => 'No se puede eliminar el servidor local'], 403);
         }
@@ -77,7 +112,12 @@ class ServerInfoController extends Controller
             'ssh_user' => 'nullable|string|max:255',
             'ssh_password' => 'nullable|string|max:255',
             'ssh_port' => 'nullable|integer',
+            'ssh_key' => 'nullable|string',
         ]);
+
+        if (empty($validated['ssh_port'])) {
+            $validated['ssh_port'] = 22;
+        }
 
         if (!empty($validated['ssh_password'])) {
             $validated['ssh_password'] = \Illuminate\Support\Facades\Crypt::encryptString($validated['ssh_password']);
