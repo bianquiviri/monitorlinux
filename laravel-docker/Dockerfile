@@ -17,6 +17,15 @@ RUN apt-get update && apt-get install -y \
     libmariadb-dev \
     procps \
     docker.io \
+    chromium \
+    chromium-driver \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
     && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
