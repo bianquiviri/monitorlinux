@@ -15,6 +15,7 @@ class DashboardTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $browser->visit('/login')
+                ->waitFor('.glass', 10)
                 ->type('email', 'bianquiviri@gmail.com')
                 ->type('password', '!N1k00905')
                 ->press('Entrar al Dashboard')

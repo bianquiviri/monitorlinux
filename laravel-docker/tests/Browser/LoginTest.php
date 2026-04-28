@@ -15,9 +15,9 @@ class LoginTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $browser->visit('/login')
-                ->waitForText('MonitorLinux')
+                ->waitFor('.glass', 10)
                 ->assertSee('MonitorLinux')
-                ->assertSee('Acceso restringido');
+                ->assertSee('Acceso restringido al sistema de monitoreo');
         });
     }
 }
