@@ -104,7 +104,7 @@
                         </div>
 
                         <div v-if="testStatus" class="p-4 rounded-xl text-sm font-bold" :class="testStatus === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
-                            {{ testStatus === 'success' ? '✓ Conexión exitosa' : '✗ Error de conexión' }}
+                            {{ testStatus === 'success' ? '✓ Conexión exitosa' : '✗ ' + testMessage }}
                         </div>
                     </div>
 
@@ -137,7 +137,7 @@ const props = defineProps({
 const openModal = ref(false);
 const isEditing = ref(false);
 const testing = ref(false);
-const testStatus = ref(null);
+const testMessage = ref('');
 
 const form = useForm({
     id: null,
@@ -177,7 +177,7 @@ const saveServer = () => {
             onSuccess: () => openModal.value = false,
         });
     } else {
-        form.post('/server', {
+        form.post('/server/add', {
             onSuccess: () => openModal.value = false,
         });
     }
@@ -196,6 +196,7 @@ const logout = () => {
 const testConnection = async () => {
     testing.value = true;
     testStatus.value = null;
+    testMessage.value = '';
     try {
         const response = await fetch('/server/test-connection', {
             method: 'POST',
@@ -207,8 +208,10 @@ const testConnection = async () => {
         });
         const data = await response.json();
         testStatus.value = data.success ? 'success' : 'error';
+        testMessage.value = data.message || 'Error desconocido';
     } catch (e) {
         testStatus.value = 'error';
+        testMessage.value = 'Error de red: ' + e.message;
     } finally {
         testing.value = false;
     }
