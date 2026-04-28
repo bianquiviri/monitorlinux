@@ -15,3 +15,8 @@ npm-debug.log
 yarn-error.log
 /.fleet
 /.idea
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/framework/cache/*
+/storage/logs/*
+/*.log

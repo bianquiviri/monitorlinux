@@ -3,124 +3,146 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\DB;
+use App\Services\ServerMonitoringService;
+use Inertia\Inertia;
 
 class ServerInfoController extends Controller
 {
-    public function index()
-    {
-        $data = [
-            'php_version' => PHP_VERSION,
-            'laravel_version' => app()->version(),
-            'memory_usage' => $this->formatBytes(memory_get_usage(true)),
-            'memory_limit' => ini_get('memory_limit'),
-            'disk_total' => $this->formatBytes(disk_total_space('/')),
-            'disk_free' => $this->formatBytes(disk_free_space('/')),
-            'disk_used_percent' => round(100 - (disk_free_space('/') / disk_total_space('/') * 100), 1),
-            'os_name' => PHP_OS,
-            'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
-            'current_time' => now()->format('Y-m-d H:i:s'),
-            'processes' => $this->getProcesses(),
-            'load_avg' => $this->getLoadAverage(),
-            'uptime' => $this->getUptime(),
-            'docker_containers' => $this->getDockerContainers(),
-        ];
+    protected $monitor;
 
-        return view('server.info', $data);
+    public function __construct(ServerMonitoringService $monitor)
+    {
+        $this->monitor = $monitor;
     }
 
-    public function processes()
+    public function listServers()
     {
-        return response()->json([
-            'processes' => $this->getProcesses(),
-            'load_avg' => $this->getLoadAverage(),
-            'uptime' => $this->getUptime(),
-            'docker_containers' => $this->getDockerContainers(),
-            'timestamp' => now()->format('Y-m-d H:i:s'),
+        $servers = \App\Models\Server::all();
+        return Inertia::render('Server/Index', compact('servers'));
+    }
+
+    public function index(Request $request, $id)
+    {
+        try {
+            $realId = \Illuminate\Support\Facades\Crypt::decryptString($id);
+            $server = \App\Models\Server::findOrFail($realId);
+        } catch (\Exception $e) {
+            return redirect()->route('server.list')->with('error', 'ID de servidor no válido');
+        }
+        
+        $data = $this->monitor->getServerStats($server);
+        $data['servers'] = \App\Models\Server::all();
+        $data['selected_server_id_encrypted'] = \Illuminate\Support\Facades\Crypt::encryptString($server->id);
+        $data['selected_server_name'] = $server->name;
+        
+        return Inertia::render('Server/Info', $data);
+    }
+
+    public function processes(Request $request)
+    {
+        $encryptedId = $request->query('server_id');
+        try {
+            $realId = $encryptedId ? \Illuminate\Support\Facades\Crypt::decryptString($encryptedId) : null;
+            $server = $realId ? \App\Models\Server::find($realId) : \App\Models\Server::where('is_local', true)->first();
+        } catch (\Exception $e) {
+            $server = \App\Models\Server::where('is_local', true)->first();
+        }
+
+        $data = $this->monitor->getServerStats($server);
+        $data['servers'] = \App\Models\Server::all();
+        $data['timestamp'] = now()->format('Y-m-d H:i:s');
+        return response()->json($data);
+    }
+
+    public function updateServer(Request $request, $id)
+    {
+        $realId = \Illuminate\Support\Facades\Crypt::decryptString($id);
+        $server = \App\Models\Server::findOrFail($realId);
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'ip' => 'nullable|string|max:255',
+            'ssh_user' => 'nullable|string|max:255',
+            'ssh_password' => 'nullable|string|max:255',
+            'ssh_port' => 'nullable|integer',
         ]);
-    }
 
-    private function getProcesses()
-    {
-        $output = [];
-        exec('ps aux --no-headers', $output);
-        
-        $processes = [];
-        foreach (array_slice($output, 0, 20) as $line) {
-            $parts = preg_split('/\s+/', $line);
-            if (count($parts) >= 11) {
-                $processes[] = [
-                    'user' => $parts[0],
-                    'pid' => $parts[1],
-                    'cpu' => $parts[2],
-                    'mem' => $parts[3],
-                    'vsz' => $this->formatBytes((int)$parts[4] * 1024),
-                    'stat' => $parts[7] ?? 'R',
-                    'time' => $parts[9] ?? '00:00',
-                    'command' => implode(' ', array_slice($parts, 10)),
-                ];
-            }
+        if (!empty($validated['ssh_password'])) {
+            $validated['ssh_password'] = \Illuminate\Support\Facades\Crypt::encryptString($validated['ssh_password']);
+        } else {
+            unset($validated['ssh_password']);
         }
-        
-        return $processes;
+
+        $server->update($validated);
+        return response()->json(['success' => true]);
     }
 
-    private function getLoadAverage()
+    public function testConnection(Request $request)
     {
-        if (function_exists('sys_getloadavg')) {
-            $load = sys_getloadavg();
-            return [
-                '1min' => round($load[0], 2),
-                '5min' => round($load[1], 2),
-                '15min' => round($load[2], 2),
-            ];
+        $validated = $request->validate([
+            'ip' => 'required|string',
+            'ssh_user' => 'required|string',
+            'ssh_password' => 'nullable|string',
+            'ssh_port' => 'required|integer',
+            'ssh_key' => 'nullable|string',
+        ]);
+
+        // Create a temporary model instance for testing
+        $server = new \App\Models\Server($validated);
+        
+        $success = $this->ssh->testConnection($server);
+
+        return response()->json(['success' => $success]);
+    }
+
+    public function deleteServer($id)
+    {
+        $realId = \Illuminate\Support\Facades\Crypt::decryptString($id);
+        $server = \App\Models\Server::findOrFail($realId);
+        if ($server->is_local) {
+            return response()->json(['success' => false, 'message' => 'No se puede eliminar el servidor local'], 403);
         }
-        return ['1min' => 0, '5min' => 0, '15min' => 0];
+        $server->delete();
+        return response()->json(['success' => true]);
     }
 
-    private function getUptime()
+    public function addServer(Request $request)
     {
-        $output = [];
-        exec('uptime -s', $output);
-        return $output[0] ?? 'N/A';
-    }
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'ip' => 'nullable|string|max:255',
+            'ssh_user' => 'nullable|string|max:255',
+            'ssh_password' => 'nullable|string|max:255',
+            'ssh_port' => 'nullable|integer',
+            'ssh_key' => 'nullable|string',
+        ]);
 
-    private function getDockerContainers()
-    {
-        $command = 'docker ps --no-trunc --format "{{json .}}" 2>/dev/null';
-        $output = shell_exec($command);
-        
-        $containers = [];
-        if (empty($output)) return $containers;
-        
-        $lines = explode("\n", trim($output));
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            $data = json_decode($line, true);
-            if ($data) {
-                $containers[] = [
-                    'id' => substr($data['ID'] ?? '', 0, 12),
-                    'image' => $data['Image'] ?? '',
-                    'status' => $data['Status'] ?? '',
-                    'ports' => $data['Ports'] ?? '',
-                ];
-            }
+        if (empty($validated['ssh_port'])) {
+            $validated['ssh_port'] = 22;
         }
-        
-        return $containers;
+
+        if (!empty($validated['ssh_password'])) {
+            $validated['ssh_password'] = \Illuminate\Support\Facades\Crypt::encryptString($validated['ssh_password']);
+        }
+
+        \App\Models\Server::create($validated);
+
+        return response()->json(['success' => true]);
     }
 
-    private function formatBytes($bytes): string
+    public function manageContainer(Request $request)
     {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-        $bytes /= (1 << (10 * $pow));
-        return round($bytes, 2) . ' ' . $units[$pow];
+        $request->validate([
+            'server_id' => 'required|integer',
+            'id' => 'required|string',
+            'action' => 'required|string|in:start,stop,restart'
+        ]);
+
+        $server = \App\Models\Server::findOrFail($request->server_id);
+        $success = $this->monitor->manageContainer($server, $request->id, $request->action);
+
+        return response()->json([
+            'success' => $success,
+            'message' => $success ? "Contenedor {$request->action} exitoso" : "Error al ejecutar {$request->action}"
+        ]);
     }
 }
