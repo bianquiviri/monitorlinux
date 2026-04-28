@@ -51,3 +51,10 @@
 2026-04-27 17:07:18,851 INFO supervisord started with pid 1
 2026-04-27 17:07:19,853 INFO spawned: 'php-fpm' with pid 7
 2026-04-27 17:07:20,951 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-04-27 17:15:41,790 WARN received SIGQUIT indicating exit request
+2026-04-27 17:15:41,792 INFO waiting for php-fpm to die
+2026-04-27 17:15:42,809 INFO stopped: php-fpm (exit status 0)
+2026-04-28 07:31:33,619 INFO Set uid to user 0 succeeded
+2026-04-28 07:31:33,622 INFO supervisord started with pid 1
+2026-04-28 07:31:34,624 INFO spawned: 'php-fpm' with pid 7
+2026-04-28 07:31:35,724 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
