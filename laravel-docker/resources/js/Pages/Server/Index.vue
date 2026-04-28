@@ -204,6 +204,7 @@ const testConnection = async () => {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
             },
+            credentials: 'same-origin',
             body: JSON.stringify(form.data())
         });
         const data = await response.json();
