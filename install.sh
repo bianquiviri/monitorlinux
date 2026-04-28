@@ -81,8 +81,9 @@ echo "Ejecutando migraciones de la base de datos..."
 sleep 5
 docker compose exec app php artisan migrate --seed --force
 
-echo "Ajustando permisos de directorios..."
-docker compose exec -u root app chmod -R 775 storage bootstrap/cache
+echo "Creando directorios de almacenamiento y ajustando permisos..."
+docker compose exec -u root app mkdir -p /var/www/storage/framework/{sessions,views,cache,testing}
+docker compose exec -u root app chmod -R 777 storage bootstrap/cache
 docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cache
 
 # 7. Compilar Frontend (Vue 3 + Vite)

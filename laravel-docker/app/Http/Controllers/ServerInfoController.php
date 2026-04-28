@@ -9,10 +9,12 @@ use Inertia\Inertia;
 class ServerInfoController extends Controller
 {
     protected $monitor;
+    protected $ssh;
 
-    public function __construct(ServerMonitoringService $monitor)
+    public function __construct(ServerMonitoringService $monitor, SSHService $ssh)
     {
         $this->monitor = $monitor;
+        $this->ssh = $ssh;
     }
 
     public function listServers()
@@ -89,9 +91,13 @@ class ServerInfoController extends Controller
         // Create a temporary model instance for testing
         $server = new \App\Models\Server($validated);
         
-        $success = $this->ssh->testConnection($server);
+        $result = $this->ssh->testConnection($server);
+        
+        if (!$result['success']) {
+            $result['debug'] = $this->ssh->getConnectionError($server);
+        }
 
-        return response()->json(['success' => $success]);
+        return response()->json($result);
     }
 
     public function deleteServer($id)

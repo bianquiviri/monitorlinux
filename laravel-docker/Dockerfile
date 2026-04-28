@@ -47,6 +47,12 @@ COPY . /var/www
 # Copy existing application directory permissions
 COPY --chown=${USER}:${USER} . /var/www
 
+# Create required storage directories and fix permissions
+RUN mkdir -p /var/www/storage/framework/{sessions,views,cache,testing} && \
+    chmod -R 777 /var/www/storage && \
+    chmod -R 777 /var/www/bootstrap/cache && \
+    chown -R ${USER}:${USER} /var/www/vendor /var/www/storage /var/www/bootstrap/cache || true
+
 # Change current user to the one we created
 USER ${USER}
 

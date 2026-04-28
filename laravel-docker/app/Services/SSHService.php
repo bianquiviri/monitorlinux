@@ -23,14 +23,29 @@ class SSHService
         }
     }
 
-    public function testConnection(Server $server): bool
+    public function testConnection(Server $server): array
     {
-        if ($server->is_local) return true;
+        if ($server->is_local) return ['success' => true, 'message' => 'Conexión local exitosa'];
         try {
             $ssh = $this->connect($server);
-            return $ssh !== null;
+            if ($ssh !== null) {
+                return ['success' => true, 'message' => 'Conexión SSH exitosa'];
+            }
+            return ['success' => false, 'message' => 'No se pudo autenticar. Verifique: usuario, contraseña/clave SSH, y que el servidor acepte conexiones en el puerto ' . $server->ssh_port];
         } catch (\Exception $e) {
-            return false;
+            return ['success' => false, 'message' => 'Error de conexión: ' . $e->getMessage()];
+        }
+    }
+
+    public function getConnectionError(Server $server): string
+    {
+        if ($server->is_local) return '';
+        try {
+            $ssh = new \phpseclib3\Net\SSH2($server->ip, (int)$server->ssh_port);
+            $log = $ssh->getLog();
+            return is_array($log) ? implode('; ', array_slice($log, -5)) : 'Sin log disponible';
+        } catch (\Exception $e) {
+            return 'Error: ' . $e->getMessage();
         }
     }
 
